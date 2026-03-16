@@ -34,6 +34,14 @@ has_cmd() {
     command -v "$1" >/dev/null 2>&1
 }
 
+collect_cron_output() {
+    output=$(crontab -l 2>/dev/null)
+    if has_cmd cru; then
+        output="$output\n$(cru l 2>/dev/null)"
+    fi
+    printf "%s\n" "$output"
+}
+
 collect_net_output() {
     if has_cmd netstat; then
         netstat -an 2>/dev/null
@@ -80,6 +88,58 @@ scan_ioc_ips_in_connections() {
     for ip in $ioc_ips; do
         if echo "$net_output" | grep -F "$ip" >/dev/null 2>&1; then
             warn "$family IOC network match: $ip"
+            found=1
+        fi
+    done
+
+    return "$found"
+}
+
+scan_ioc_domains_in_files() {
+    family="$1"
+    ioc_domains="$2"
+    target_files="$3"
+
+    found=0
+    for target in $target_files; do
+        if [ ! -f "$target" ]; then
+            continue
+        fi
+
+        for domain in $ioc_domains; do
+            if grep -F "$domain" "$target" >/dev/null 2>&1; then
+                warn "$family IOC domain found in $target: $domain"
+                found=1
+            fi
+        done
+    done
+
+    return "$found"
+}
+
+scan_startup_hooks_for_regex() {
+    label="$1"
+    regex="$2"
+
+    found=0
+    for hook in /jffs/scripts/services-start /jffs/scripts/wan-start /jffs/scripts/firewall-start /jffs/scripts/nat-start /jffs/scripts/post-mount; do
+        if [ -f "$hook" ] && grep -Ei "$regex" "$hook" >/dev/null 2>&1; then
+            warn "$label suspicious startup hook content: $hook"
+            found=1
+        fi
+    done
+
+    return "$found"
+}
+
+check_suspicious_file_paths() {
+    label="$1"
+    paths="$2"
+
+    found=0
+    for path in $paths; do
+        if [ -f "$path" ]; then
+            warn "$label suspicious file path exists: $path"
             found=1
         fi
     done
