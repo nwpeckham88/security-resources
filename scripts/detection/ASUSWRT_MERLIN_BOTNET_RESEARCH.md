@@ -193,7 +193,12 @@ Implemented:
 - `scripts/detection/detect-kadnap.sh`
 - `scripts/detection/detect-kvbotnet.sh`
 - `scripts/detection/detect-zuorat.sh`
+- `scripts/detection/detect-hiatus.sh`
+- `scripts/detection/audit-asuswrt-baseline.sh`
+- `scripts/detection/setup-router-ssh.sh`
+- `scripts/detection/router-connect.sh`
+- `scripts/detection/run-router-check.sh`
 
 Next recommended build target:
-- `scripts/detection/detect-hiatus.sh`
+- Add optional router-side collector mode that batches all detectors in one SSH session.
 
