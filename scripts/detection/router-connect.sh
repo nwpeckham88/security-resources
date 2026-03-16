@@ -4,6 +4,18 @@ set -u
 
 PROFILE_PATH="${ROUTER_SSH_PROFILE:-$HOME/.config/security-resources/router-ssh-profile.env}"
 
+resolve_profile_path() {
+    profile_arg="$1"
+    case "$profile_arg" in
+        */*)
+            printf '%s' "$profile_arg"
+            ;;
+        *)
+            printf '%s/.config/security-resources/%s.env' "$HOME" "$profile_arg"
+            ;;
+    esac
+}
+
 usage() {
     cat <<'EOF'
 Usage:
@@ -73,7 +85,7 @@ RUN_COMMAND=""
 while [ "$#" -gt 0 ]; do
     case "$1" in
         --profile)
-            PROFILE_PATH="$2"
+            PROFILE_PATH=$(resolve_profile_path "$2")
             shift 2
             ;;
         --run)

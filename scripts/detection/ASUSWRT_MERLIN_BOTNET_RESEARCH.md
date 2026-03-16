@@ -194,11 +194,22 @@ Implemented:
 - `scripts/detection/detect-kvbotnet.sh`
 - `scripts/detection/detect-zuorat.sh`
 - `scripts/detection/detect-hiatus.sh`
+- `scripts/detection/detect-mirai.sh`
+- `scripts/detection/detect-raptor-train.sh`
 - `scripts/detection/audit-asuswrt-baseline.sh`
 - `scripts/detection/setup-router-ssh.sh`
 - `scripts/detection/router-connect.sh`
 - `scripts/detection/run-router-check.sh`
+- `scripts/detection/run-all-router-checks.sh`
+- `scripts/detection/export-report.sh`
+- `scripts/detection/capture-baseline.sh`
+- `scripts/detection/score-router-risk.sh`
+- `scripts/detection/disable-router-ssh-reminder.sh`
+- `scripts/maintenance/update-iocs.sh`
+- `iocs/*.txt` seed IOC datasets
+- `.github/workflows/ci.yml` + `tests/smoke.sh`
+- `SECURITY.md`, `CONTRIBUTING.md`, `README.md`, and `docs/*`
 
 Next recommended build target:
-- Add optional router-side collector mode that batches all detectors in one SSH session.
+- Add confidence/date metadata fields to IOC seed entries and enforce schema linting.
 

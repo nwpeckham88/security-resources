@@ -5,6 +5,28 @@ set -u
 CONFIG_DIR="$HOME/.config/security-resources"
 PROFILE_PATH="$CONFIG_DIR/router-ssh-profile.env"
 
+usage() {
+        cat <<'EOF'
+Usage:
+    setup-router-ssh.sh [--profile <name-or-path>]
+Examples:
+    setup-router-ssh.sh --profile home
+    setup-router-ssh.sh --profile /tmp/router.env
+EOF
+}
+
+resolve_profile_path() {
+        profile_arg="$1"
+        case "$profile_arg" in
+                */*)
+                        printf '%s' "$profile_arg"
+                        ;;
+                *)
+                        printf '%s/%s.env' "$CONFIG_DIR" "$profile_arg"
+                        ;;
+        esac
+}
+
 print_line() {
     printf '%s\n' "$1"
 }
@@ -138,6 +160,24 @@ print_line "=========================================================="
 print_line " Router SSH Guided Setup"
 print_line "=========================================================="
 print_line ""
+
+while [ "$#" -gt 0 ]; do
+    case "$1" in
+        --profile)
+            PROFILE_PATH=$(resolve_profile_path "$2")
+            shift 2
+            ;;
+        -h|--help)
+            usage
+            exit 0
+            ;;
+        *)
+            echo "Unknown argument: $1"
+            usage
+            exit 1
+            ;;
+    esac
+done
 print_line "1) In ASUSWRT/Merlin web UI:"
 print_line "   Administration -> System -> Enable SSH"
 print_line "2) Prefer LAN-only SSH and disable WAN SSH unless required"

@@ -4,17 +4,46 @@ set -u
 
 SCRIPT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 PROFILE_PATH="${ROUTER_SSH_PROFILE:-$HOME/.config/security-resources/router-ssh-profile.env}"
+SIMPLE_MODE="${SIMPLE_MODE:-0}"
+
+resolve_profile_path() {
+    profile_arg="$1"
+    case "$profile_arg" in
+        */*)
+            printf '%s' "$profile_arg"
+            ;;
+        *)
+            printf '%s/.config/security-resources/%s.env' "$HOME" "$profile_arg"
+            ;;
+    esac
+}
 
 usage() {
     cat <<'EOF'
 Usage:
-  run-router-check.sh <detector-script>
+    run-router-check.sh [--profile <name-or-path>] [--simple] <detector-script>
 Examples:
   run-router-check.sh detect-kadnap.sh
+    run-router-check.sh --profile home --simple detect-kvbotnet.sh
   run-router-check.sh detect-kvbotnet.sh
   run-router-check.sh audit-asuswrt-baseline.sh
 EOF
 }
+
+if [ "$#" -lt 1 ]; then
+    usage
+    exit 1
+fi
+
+if [ "$1" = "--profile" ]; then
+    PROFILE_PATH=$(resolve_profile_path "$2")
+    shift 2
+fi
+
+if [ "$1" = "--simple" ]; then
+    SIMPLE_MODE=1
+    shift
+fi
 
 if [ "$#" -lt 1 ]; then
     usage
@@ -113,4 +142,4 @@ run_ssh "mkdir -p '$REMOTE_BASE'"
 run_scp "$LIB_SCRIPT" "$TARGET_SCRIPT" "$ROUTER_USER@$ROUTER_HOST:$REMOTE_BASE/"
 
 # Execute and clean up.
-run_ssh "chmod +x '$REMOTE_SCRIPT' '$REMOTE_LIB' && '$REMOTE_SCRIPT'; rc=\$?; rm -rf '$REMOTE_BASE'; exit \$rc"
+run_ssh "chmod +x '$REMOTE_SCRIPT' '$REMOTE_LIB' && SIMPLE_MODE='$SIMPLE_MODE' '$REMOTE_SCRIPT'; rc=\$?; rm -rf '$REMOTE_BASE'; exit \$rc"
