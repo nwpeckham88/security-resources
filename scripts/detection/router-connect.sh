@@ -44,24 +44,23 @@ cleanup_expired_password() {
     fi
 }
 
-build_ssh_command() {
+run_ssh() {
     ssh_opts="-o StrictHostKeyChecking=accept-new -o UserKnownHostsFile=$HOME/.ssh/known_hosts -p $ROUTER_PORT"
-
     if [ "$ROUTER_AUTH_MODE" = "key" ]; then
         if [ -z "${ROUTER_KEY_PATH:-}" ] || [ ! -f "$ROUTER_KEY_PATH" ]; then
             echo "Key auth selected but key file is missing: ${ROUTER_KEY_PATH:-<unset>}"
             exit 1
         fi
-        SSH_BASE="ssh $ssh_opts -i $ROUTER_KEY_PATH $ROUTER_USER@$ROUTER_HOST"
+        ssh $ssh_opts -i "$ROUTER_KEY_PATH" "$ROUTER_USER@$ROUTER_HOST" "$@"
         return
     fi
 
     if [ "$ROUTER_AUTH_MODE" = "password" ]; then
         if [ -n "${ROUTER_PASS_FILE:-}" ] && [ -f "$ROUTER_PASS_FILE" ] && command -v sshpass >/dev/null 2>&1; then
-            SSH_BASE="sshpass -f $ROUTER_PASS_FILE ssh $ssh_opts $ROUTER_USER@$ROUTER_HOST"
+            sshpass -f "$ROUTER_PASS_FILE" ssh $ssh_opts "$ROUTER_USER@$ROUTER_HOST" "$@"
             return
         fi
-        SSH_BASE="ssh $ssh_opts $ROUTER_USER@$ROUTER_HOST"
+        ssh $ssh_opts "$ROUTER_USER@$ROUTER_HOST" "$@"
         return
     fi
 
@@ -95,10 +94,9 @@ done
 
 load_profile
 cleanup_expired_password
-build_ssh_command
 
 if [ -n "$RUN_COMMAND" ]; then
-    eval "$SSH_BASE \"$RUN_COMMAND\""
+    run_ssh "$RUN_COMMAND"
 else
-    eval "$SSH_BASE"
+    run_ssh
 fi

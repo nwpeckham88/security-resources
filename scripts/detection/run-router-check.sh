@@ -62,33 +62,55 @@ fi
 SSH_OPTS="-o StrictHostKeyChecking=accept-new -o UserKnownHostsFile=$HOME/.ssh/known_hosts -p $ROUTER_PORT"
 SCP_OPTS="-o StrictHostKeyChecking=accept-new -o UserKnownHostsFile=$HOME/.ssh/known_hosts -P $ROUTER_PORT"
 
-if [ "$ROUTER_AUTH_MODE" = "key" ]; then
-    if [ -z "${ROUTER_KEY_PATH:-}" ] || [ ! -f "$ROUTER_KEY_PATH" ]; then
-        echo "Key auth selected but key file is missing: ${ROUTER_KEY_PATH:-<unset>}"
-        exit 1
+run_ssh() {
+    if [ "$ROUTER_AUTH_MODE" = "key" ]; then
+        if [ -z "${ROUTER_KEY_PATH:-}" ] || [ ! -f "$ROUTER_KEY_PATH" ]; then
+            echo "Key auth selected but key file is missing: ${ROUTER_KEY_PATH:-<unset>}"
+            exit 1
+        fi
+        ssh $SSH_OPTS -i "$ROUTER_KEY_PATH" "$ROUTER_USER@$ROUTER_HOST" "$@"
+        return
     fi
-    SSH_CMD="ssh $SSH_OPTS -i $ROUTER_KEY_PATH $ROUTER_USER@$ROUTER_HOST"
-    SCP_CMD="scp $SCP_OPTS -i $ROUTER_KEY_PATH"
-elif [ "$ROUTER_AUTH_MODE" = "password" ]; then
-    if [ -n "${ROUTER_PASS_FILE:-}" ] && [ -f "$ROUTER_PASS_FILE" ] && command -v sshpass >/dev/null 2>&1; then
-        SSH_CMD="sshpass -f $ROUTER_PASS_FILE ssh $SSH_OPTS $ROUTER_USER@$ROUTER_HOST"
-        SCP_CMD="sshpass -f $ROUTER_PASS_FILE scp $SCP_OPTS"
-    else
-        SSH_CMD="ssh $SSH_OPTS $ROUTER_USER@$ROUTER_HOST"
-        SCP_CMD="scp $SCP_OPTS"
+
+    if [ "$ROUTER_AUTH_MODE" = "password" ]; then
+        if [ -n "${ROUTER_PASS_FILE:-}" ] && [ -f "$ROUTER_PASS_FILE" ] && command -v sshpass >/dev/null 2>&1; then
+            sshpass -f "$ROUTER_PASS_FILE" ssh $SSH_OPTS "$ROUTER_USER@$ROUTER_HOST" "$@"
+            return
+        fi
+        ssh $SSH_OPTS "$ROUTER_USER@$ROUTER_HOST" "$@"
+        return
     fi
-else
+
     echo "Unsupported ROUTER_AUTH_MODE: $ROUTER_AUTH_MODE"
     exit 1
-fi
+}
+
+run_scp() {
+    if [ "$ROUTER_AUTH_MODE" = "key" ]; then
+        scp $SCP_OPTS -i "$ROUTER_KEY_PATH" "$@"
+        return
+    fi
+
+    if [ "$ROUTER_AUTH_MODE" = "password" ]; then
+        if [ -n "${ROUTER_PASS_FILE:-}" ] && [ -f "$ROUTER_PASS_FILE" ] && command -v sshpass >/dev/null 2>&1; then
+            sshpass -f "$ROUTER_PASS_FILE" scp $SCP_OPTS "$@"
+            return
+        fi
+        scp $SCP_OPTS "$@"
+        return
+    fi
+
+    echo "Unsupported ROUTER_AUTH_MODE: $ROUTER_AUTH_MODE"
+    exit 1
+}
 
 REMOTE_BASE="/tmp/router-check-$$"
 REMOTE_LIB="$REMOTE_BASE/lib-router-detect.sh"
 REMOTE_SCRIPT="$REMOTE_BASE/$(basename "$TARGET_SCRIPT")"
 
 # Upload helper library and target script.
-eval "$SSH_CMD \"mkdir -p '$REMOTE_BASE'\""
-eval "$SCP_CMD '$LIB_SCRIPT' '$TARGET_SCRIPT' '$ROUTER_USER@$ROUTER_HOST:$REMOTE_BASE/'"
+run_ssh "mkdir -p '$REMOTE_BASE'"
+run_scp "$LIB_SCRIPT" "$TARGET_SCRIPT" "$ROUTER_USER@$ROUTER_HOST:$REMOTE_BASE/"
 
 # Execute and clean up.
-eval "$SSH_CMD \"chmod +x '$REMOTE_SCRIPT' '$REMOTE_LIB' && '$REMOTE_SCRIPT'; rc=\$?; rm -rf '$REMOTE_BASE'; exit \$rc\""
+run_ssh "chmod +x '$REMOTE_SCRIPT' '$REMOTE_LIB' && '$REMOTE_SCRIPT'; rc=\$?; rm -rf '$REMOTE_BASE'; exit \$rc"
