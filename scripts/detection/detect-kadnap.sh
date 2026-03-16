@@ -116,7 +116,11 @@ if [ "$found_ioc_hashes" -eq 0 ]; then
 fi
 echo ""
 
-echo "=========================================================="
-echo "Diagnostic complete. If any warnings [!] were triggered,  "
-echo "your router may be compromised.                           "
-echo "=========================================================="
+echo "==========================================================="
+echo "Diagnostic complete. If any warnings [!] were triggered,   "
+echo "your router may be compromised.                            "
+echo "Please consider performing a factory reset and updating to "
+echo "the latest firmware to mitigate potential threats.         "
+echo "NOTE: Only a factory reset can fully remove KadNap 
+echo "from an infected router."
+echo "==========================================================="
