@@ -1,0 +1,94 @@
+#!/bin/sh
+
+set -u
+
+SCRIPT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+PROFILE_PATH="${ROUTER_SSH_PROFILE:-$HOME/.config/security-resources/router-ssh-profile.env}"
+
+usage() {
+    cat <<'EOF'
+Usage:
+  run-router-check.sh <detector-script>
+Examples:
+  run-router-check.sh detect-kadnap.sh
+  run-router-check.sh detect-kvbotnet.sh
+  run-router-check.sh audit-asuswrt-baseline.sh
+EOF
+}
+
+if [ "$#" -lt 1 ]; then
+    usage
+    exit 1
+fi
+
+TARGET_SCRIPT="$1"
+if [ ! -f "$TARGET_SCRIPT" ]; then
+    TARGET_SCRIPT="$SCRIPT_DIR/$1"
+fi
+
+if [ ! -f "$TARGET_SCRIPT" ]; then
+    echo "Detector script not found: $1"
+    exit 1
+fi
+
+LIB_SCRIPT="$SCRIPT_DIR/lib-router-detect.sh"
+if [ ! -f "$LIB_SCRIPT" ]; then
+    echo "Missing shared library: $LIB_SCRIPT"
+    exit 1
+fi
+
+if [ ! -f "$PROFILE_PATH" ]; then
+    echo "Profile not found: $PROFILE_PATH"
+    echo "Run scripts/detection/setup-router-ssh.sh first."
+    exit 1
+fi
+
+# shellcheck disable=SC1090
+. "$PROFILE_PATH"
+
+: "${ROUTER_HOST:?Missing ROUTER_HOST in profile}"
+: "${ROUTER_PORT:?Missing ROUTER_PORT in profile}"
+: "${ROUTER_USER:?Missing ROUTER_USER in profile}"
+: "${ROUTER_AUTH_MODE:?Missing ROUTER_AUTH_MODE in profile}"
+
+now_ts=$(date +%s)
+if [ -n "${ROUTER_PASS_EXPIRES:-}" ] && [ "$now_ts" -ge "$ROUTER_PASS_EXPIRES" ]; then
+    if [ -n "${ROUTER_PASS_FILE:-}" ] && [ -f "$ROUTER_PASS_FILE" ]; then
+        rm -f "$ROUTER_PASS_FILE"
+    fi
+    ROUTER_PASS_FILE=""
+fi
+
+SSH_OPTS="-o StrictHostKeyChecking=accept-new -o UserKnownHostsFile=$HOME/.ssh/known_hosts -p $ROUTER_PORT"
+SCP_OPTS="-o StrictHostKeyChecking=accept-new -o UserKnownHostsFile=$HOME/.ssh/known_hosts -P $ROUTER_PORT"
+
+if [ "$ROUTER_AUTH_MODE" = "key" ]; then
+    if [ -z "${ROUTER_KEY_PATH:-}" ] || [ ! -f "$ROUTER_KEY_PATH" ]; then
+        echo "Key auth selected but key file is missing: ${ROUTER_KEY_PATH:-<unset>}"
+        exit 1
+    fi
+    SSH_CMD="ssh $SSH_OPTS -i $ROUTER_KEY_PATH $ROUTER_USER@$ROUTER_HOST"
+    SCP_CMD="scp $SCP_OPTS -i $ROUTER_KEY_PATH"
+elif [ "$ROUTER_AUTH_MODE" = "password" ]; then
+    if [ -n "${ROUTER_PASS_FILE:-}" ] && [ -f "$ROUTER_PASS_FILE" ] && command -v sshpass >/dev/null 2>&1; then
+        SSH_CMD="sshpass -f $ROUTER_PASS_FILE ssh $SSH_OPTS $ROUTER_USER@$ROUTER_HOST"
+        SCP_CMD="sshpass -f $ROUTER_PASS_FILE scp $SCP_OPTS"
+    else
+        SSH_CMD="ssh $SSH_OPTS $ROUTER_USER@$ROUTER_HOST"
+        SCP_CMD="scp $SCP_OPTS"
+    fi
+else
+    echo "Unsupported ROUTER_AUTH_MODE: $ROUTER_AUTH_MODE"
+    exit 1
+fi
+
+REMOTE_BASE="/tmp/router-check-$$"
+REMOTE_LIB="$REMOTE_BASE/lib-router-detect.sh"
+REMOTE_SCRIPT="$REMOTE_BASE/$(basename "$TARGET_SCRIPT")"
+
+# Upload helper library and target script.
+eval "$SSH_CMD \"mkdir -p '$REMOTE_BASE'\""
+eval "$SCP_CMD '$LIB_SCRIPT' '$TARGET_SCRIPT' '$ROUTER_USER@$ROUTER_HOST:$REMOTE_BASE/'"
+
+# Execute and clean up.
+eval "$SSH_CMD \"chmod +x '$REMOTE_SCRIPT' '$REMOTE_LIB' && '$REMOTE_SCRIPT'; rc=\$?; rm -rf '$REMOTE_BASE'; exit \$rc\""
