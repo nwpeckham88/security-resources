@@ -10,6 +10,16 @@ print_header "Hiatus Botnet Basic Detection Script"
 HIATUS_IOC_IPS="104.250.48.192 46.8.113.227 207.246.80.240 45.63.70.57 155.138.213.169 66.135.22.245 107.189.11.105"
 HIATUS_IOC_HASHES="774f2f3a801ddfe5d8a9ab1b90398ee28ee2be3d7ad0fa75eacbdf7ab51f6939 766e13d2a085c7c1b5e37fe0be92658932a13cfbcadf5b08977420fc6ac6d3e3 193481c4e2cbd14a29090f500f88455e1394140b9c5857937f86d2b854b54f60 98ec46ac0e3b0b49140f710d0437e03e1f89f9b6fc092be7a5a1fde7d59e312e"
 
+HIATUS_IOC_FILE=$(ioc_file_path "hiatus")
+HIATUS_IOC_IPS_FILE=$(ioc_values "$HIATUS_IOC_FILE" "IP")
+HIATUS_IOC_HASHES_FILE=$(ioc_values "$HIATUS_IOC_FILE" "SHA256")
+if [ -n "$HIATUS_IOC_IPS_FILE" ]; then
+    HIATUS_IOC_IPS="$HIATUS_IOC_IPS_FILE"
+fi
+if [ -n "$HIATUS_IOC_HASHES_FILE" ]; then
+    HIATUS_IOC_HASHES="$HIATUS_IOC_HASHES_FILE"
+fi
+
 section "Checking cron/cru for Hiatus-like persistence markers..."
 CRON_OUTPUT=$(collect_cron_output)
 if echo "$CRON_OUTPUT" | grep -Ei 'hiatus|tcpdump|upload|heartbeat|wget|curl.*sh|/tmp/' >/dev/null 2>&1; then

@@ -9,6 +9,16 @@ print_header "KadNap Botnet Basic Detection Script"
 KADNAP_IOC_IPS="85.158.111.100 89.46.38.74 154.7.253.12 212.104.141.88 91.193.19.226 79.141.161.152 91.193.19.51 79.141.163.155 23.227.203.221 45.135.180.38 45.135.180.177"
 KADNAP_IOC_HASHES="0b3dbb951de7a216dd5032d783ba7d0a5ecda2bf872643c3a4ddd1667fb38ffe ebf9de6b67e94b2bd2b0dcda1941e04fef1a1dad830404813e468ab8744b7ed8"
 
+KADNAP_IOC_FILE=$(ioc_file_path "kadnap")
+KADNAP_IOC_IPS_FILE=$(ioc_values "$KADNAP_IOC_FILE" "IP")
+KADNAP_IOC_HASHES_FILE=$(ioc_values "$KADNAP_IOC_FILE" "SHA256")
+if [ -n "$KADNAP_IOC_IPS_FILE" ]; then
+    KADNAP_IOC_IPS="$KADNAP_IOC_IPS_FILE"
+fi
+if [ -n "$KADNAP_IOC_HASHES_FILE" ]; then
+    KADNAP_IOC_HASHES="$KADNAP_IOC_HASHES_FILE"
+fi
+
 section "Checking scheduled tasks (cron/cru) for KadNap persistence patterns..."
 CRON_OUTPUT=$(crontab -l 2>/dev/null)
 if has_cmd cru; then

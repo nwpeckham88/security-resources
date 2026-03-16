@@ -1,0 +1,9 @@
+# Mirai/Chaos seed list
+PORT:23
+PORT:2323
+PORT:48101
+IP:198.98.55.123
+DOMAIN:linuxddos.net
+DOMAIN:quanquandd.top
+SHA256:e0e3d23222d71bbebae6afd37dcc436f9f5c8e56dd6ece8c8d63c162826dd99c
+SHA256:d315b83e772dfddbd2783f016c38f021225745eb43c06bbdfd92364f68fa4c56

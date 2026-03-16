@@ -1,6 +1,16 @@
 #!/bin/sh
 
-SCRIPT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+
+
+
+
+
+
+
+
+
+
+echo "=========================================================="echo "5) Keep firmware updated and re-run baseline checks periodically."echo "4) Remove temporary password files in /dev/shm if present."echo "3) Rotate password if password auth was used."echo "2) Keep WAN SSH disabled unless strictly necessary."echo "1) Disable SSH in router web UI if you no longer need access."echo "=========================================================="echo " Router SSH Hardening Reminder"echo "=========================================================="SCRIPT_DIR=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
 # shellcheck source=lib-router-detect.sh
 . "$SCRIPT_DIR/lib-router-detect.sh"
 
@@ -10,6 +20,20 @@ print_header "ZuoRAT Basic Detection Script"
 ZUORAT_IOC_IPS="141.98.212.62 103.140.187.131 202.178.11.78 101.99.91.10 110.42.185.232"
 ZUORAT_IOC_DOMAINS="memthree.com"
 ZUORAT_IOC_HASHES="3230ab2a8cd28ef9f463fabfb879df4ea00447605b18488d64e6fc12850371fc 2f4359f91a92fa56d4aa0940ecb928042e20787b660c95e853e944ba92b02f17"
+
+ZUORAT_IOC_FILE=$(ioc_file_path "zuorat")
+ZUORAT_IOC_IPS_FILE=$(ioc_values "$ZUORAT_IOC_FILE" "IP")
+ZUORAT_IOC_DOMAINS_FILE=$(ioc_values "$ZUORAT_IOC_FILE" "DOMAIN")
+ZUORAT_IOC_HASHES_FILE=$(ioc_values "$ZUORAT_IOC_FILE" "SHA256")
+if [ -n "$ZUORAT_IOC_IPS_FILE" ]; then
+    ZUORAT_IOC_IPS="$ZUORAT_IOC_IPS_FILE"
+fi
+if [ -n "$ZUORAT_IOC_DOMAINS_FILE" ]; then
+    ZUORAT_IOC_DOMAINS="$ZUORAT_IOC_DOMAINS_FILE"
+fi
+if [ -n "$ZUORAT_IOC_HASHES_FILE" ]; then
+    ZUORAT_IOC_HASHES="$ZUORAT_IOC_HASHES_FILE"
+fi
 
 section "Checking cron/cru for suspicious router persistence patterns..."
 CRON_OUTPUT=$(crontab -l 2>/dev/null)

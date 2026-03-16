@@ -3,6 +3,9 @@
 # Shared helpers for ASUSWRT/Merlin detection scripts.
 
 WARN_COUNT=0
+REPO_ROOT=$(CDPATH= cd -- "$(dirname -- "$0")/../.." && pwd)
+FINDINGS_LOG="${FINDINGS_LOG:-}"
+SIMPLE_MODE="${SIMPLE_MODE:-0}"
 
 print_header() {
     title="$1"
@@ -19,11 +22,22 @@ section() {
 
 warn() {
     WARN_COUNT=$((WARN_COUNT + 1))
-    printf "    [!] WARNING: %s\n" "$1"
+    if [ "$SIMPLE_MODE" = "1" ]; then
+        printf "    [!] Problem found: %s\n" "$1"
+    else
+        printf "    [!] WARNING: %s\n" "$1"
+    fi
+    if [ -n "$FINDINGS_LOG" ]; then
+        printf "high|%s\n" "$1" >>"$FINDINGS_LOG"
+    fi
 }
 
 ok() {
-    printf "    [-] %s\n" "$1"
+    if [ "$SIMPLE_MODE" = "1" ]; then
+        printf "    [-] OK: %s\n" "$1"
+    else
+        printf "    [-] %s\n" "$1"
+    fi
 }
 
 note() {
@@ -32,6 +46,27 @@ note() {
 
 has_cmd() {
     command -v "$1" >/dev/null 2>&1
+}
+
+ioc_values() {
+    ioc_file="$1"
+    ioc_type="$2"
+
+    if [ ! -f "$ioc_file" ]; then
+        return
+    fi
+
+    grep -E "^${ioc_type}:" "$ioc_file" 2>/dev/null | cut -d: -f2- | tr '\n' ' '
+}
+
+ioc_file_path() {
+    family="$1"
+    printf "%s/iocs/%s.txt" "$REPO_ROOT" "$family"
+}
+
+print_security_reminder() {
+    echo ""
+    echo "Security reminder: disable SSH on the router when you are done if continuous access is not needed."
 }
 
 collect_cron_output() {

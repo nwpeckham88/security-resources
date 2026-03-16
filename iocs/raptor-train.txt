@@ -1,0 +1,11 @@
+# Raptor Train seed list
+IP:45.13.199.140
+IP:45.13.199.152
+IP:92.223.30.232
+IP:92.223.30.241
+IP:155.138.151.225
+DOMAIN:zdacasdc.w8510.com
+DOMAIN:zdacxzd.w8510.com
+DOMAIN:qacassdfawemp.w8510.com
+DOMAIN:kuyw.b2047.com
+DOMAIN:xaqw.k3121.com
